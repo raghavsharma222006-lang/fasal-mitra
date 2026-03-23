@@ -1,27 +1,24 @@
 import { Router } from 'express';
-import Anthropic   from '@anthropic-ai/sdk';
-import OpenAI      from 'openai';
-import Groq        from 'groq-sdk';
-import rateLimit   from 'express-rate-limit';
+import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
+import Groq from 'groq-sdk';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-// ─── Rate limiter: max 30 AI requests per minute per IP ───────
 const aiLimiter = rateLimit({
-  windowMs: 60 * 1000,   // 1 minute
+  windowMs: 60 * 1000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests. Please wait a moment.' },
 });
 
-// ─── SYSTEM PROMPT ────────────────────────────────────────────
 const SYSTEM_PROMPT = 
   'You are Fasal Mitra, an expert AI agricultural advisor specializing in Punjab farming. ' +
   'You give practical, concise advice for farmers. Use emojis and local context where helpful. ' +
   'Support both English and Punjabi queries. Always prioritize safety and PAU guidelines.';
 
-// Lazy-init Anthropic client
 let anthropic;
 function getAnthropicClient() {
   if (!anthropic && process.env.ANTHROPIC_API_KEY) {
@@ -30,7 +27,6 @@ function getAnthropicClient() {
   return anthropic;
 }
 
-// Lazy-init OpenAI client (fallback)
 let openai;
 function getOpenAIClient() {
   if (!openai && process.env.OPENAI_API_KEY) {
@@ -39,7 +35,6 @@ function getOpenAIClient() {
   return openai;
 }
 
-// Lazy-init Groq client (free tier - no credit card required!)
 let groq;
 function getGroqClient() {
   if (!groq && process.env.GROQ_API_KEY) {
@@ -48,7 +43,6 @@ function getGroqClient() {
   return groq;
 }
 
-// ─── Call Anthropic API ──────────────────────────────────────
 async function callAnthropic(prompt, imageBase64) {
   const client = getAnthropicClient();
   if (!client) throw new Error('Anthropic not configured');
@@ -72,16 +66,12 @@ async function callAnthropic(prompt, imageBase64) {
   return message.content?.[0]?.text ?? 'No response generated.';
 }
 
-// ─── Call OpenAI API (fallback) ──────────────────────────────
 async function callOpenAI(prompt, imageBase64) {
   const client = getOpenAIClient();
   if (!client) throw new Error('OpenAI not configured');
 
-  const messages = [
-    { role: 'system', content: SYSTEM_PROMPT },
-  ];
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
 
-  // OpenAI vision format
   if (imageBase64) {
     messages.push({
       role: 'user',
@@ -103,19 +93,17 @@ async function callOpenAI(prompt, imageBase64) {
   return completion.choices?.[0]?.message?.content ?? 'No response generated.';
 }
 
-// ─── Call Groq API (FREE - no credit card required) ──────────
 async function callGroq(prompt, imageBase64) {
   const client = getGroqClient();
   if (!client) throw new Error('Groq not configured');
 
-  // Note: Groq doesn't support vision yet, so we append image info to text
   let fullPrompt = prompt;
   if (imageBase64) {
     fullPrompt += '\n\n[Note: An image was provided but Groq free tier does not support image analysis. Please provide general advice based on the description.]';
   }
 
   const completion = await client.chat.completions.create({
-    model: 'llama-3.1-8b-instant',  // Fast and free on Groq
+    model: 'llama-3.1-8b-instant',
     max_tokens: 1024,
     messages: [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -126,7 +114,6 @@ async function callGroq(prompt, imageBase64) {
   return completion.choices?.[0]?.message?.content ?? 'No response generated.';
 }
 
-// ─── Check if error is credit-related ────────────────────────
 function isCreditError(err) {
   const msg = err.message || err.error?.message || '';
   return msg.includes('credit balance') || 
@@ -134,11 +121,6 @@ function isCreditError(err) {
          msg.includes('insufficient_quota');
 }
 
-/**
- * POST /api/ai/ask
- * Body: { prompt: string, image?: string (base64 JPEG/PNG) }
- * Returns: { answer: string }
- */
 router.post('/ask', aiLimiter, async (req, res, next) => {
   try {
     const { prompt, image } = req.body;
@@ -157,7 +139,6 @@ router.post('/ask', aiLimiter, async (req, res, next) => {
     let usedProvider = 'anthropic';
     const errors = [];
 
-    // Try Anthropic first
     try {
       const anthropicClient = getAnthropicClient();
       if (anthropicClient) {
@@ -169,7 +150,6 @@ router.post('/ask', aiLimiter, async (req, res, next) => {
       errors.push({ provider: 'anthropic', error: anthropicErr.message });
       console.log('[AI] Anthropic failed:', anthropicErr.message);
 
-      // Try OpenAI as fallback
       try {
         const openaiClient = getOpenAIClient();
         if (openaiClient) {
@@ -183,15 +163,14 @@ router.post('/ask', aiLimiter, async (req, res, next) => {
         errors.push({ provider: 'openai', error: openaiErr.message });
         console.log('[AI] OpenAI failed:', openaiErr.message);
 
-        // Try Groq as final fallback (FREE - no credit card required!)
         try {
           const groqClient = getGroqClient();
           if (groqClient) {
-            console.log('[AI] Trying Groq fallback (free tier)...');
+            console.log('[AI] Trying Groq fallback...');
             answer = await callGroq(prompt, image);
             usedProvider = 'groq';
           } else {
-            throw new Error('Groq not configured. Get a free API key at https://console.groq.com');
+            throw new Error('Groq not configured');
           }
         } catch (groqErr) {
           errors.push({ provider: 'groq', error: groqErr.message });
@@ -210,16 +189,14 @@ router.post('/ask', aiLimiter, async (req, res, next) => {
   } catch (err) {
     console.error('[AI] All providers failed:', err.message);
     
-    // Check if it's a credit error from any provider
     if (isCreditError(err)) {
       return res.status(402).json({ 
         success: false, 
         errorType: 'CREDIT_LOW',
-        error: 'AI service temporarily unavailable. All providers have insufficient credits. Get a FREE Groq API key (no credit card) at https://console.groq.com'
+        error: 'AI service temporarily unavailable. All providers have insufficient credits.'
       });
     }
     
-    // Generic API errors
     if (err?.status) {
       return res.status(err.status).json({ success: false, error: err.message });
     }
@@ -228,17 +205,13 @@ router.post('/ask', aiLimiter, async (req, res, next) => {
   }
 });
 
-/**
- * GET /api/ai/health
- * Quick health-check — does NOT hit any AI API.
- */
 router.get('/health', (req, res) => {
   res.json({
     success: true,
     providers: {
       anthropic: !!process.env.ANTHROPIC_API_KEY,
       openai: !!process.env.OPENAI_API_KEY,
-      groq: !!process.env.GROQ_API_KEY,  // FREE - no credit card required!
+      groq: !!process.env.GROQ_API_KEY,
     },
     timestamp: new Date().toISOString(),
   });

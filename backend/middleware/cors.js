@@ -1,6 +1,5 @@
 import cors from 'cors';
 
-// Build allowed origins from environment or use defaults
 const getAllowedOrigins = () => {
   const origins = [
     'http://localhost:3000',
@@ -16,52 +15,25 @@ const getAllowedOrigins = () => {
     'http://127.0.0.1:5177',
   ];
   
-  // Add FRONTEND_URL from env if set
-  if (process.env.FRONTEND_URL) {
-    origins.push(process.env.FRONTEND_URL);
-  }
-  
-  // Add RENDER frontend URL pattern
-  if (process.env.RENDER_EXTERNAL_URL) {
-    origins.push(process.env.RENDER_EXTERNAL_URL);
-  }
+  if (process.env.FRONTEND_URL) origins.push(process.env.FRONTEND_URL);
+  if (process.env.RENDER_EXTERNAL_URL) origins.push(process.env.RENDER_EXTERNAL_URL);
   
   return origins;
 };
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, Postman, server-to-server, same-origin)
     if (!origin) return callback(null, true);
     
     const allowedOrigins = getAllowedOrigins();
     
-    // Check exact match
     if (allowedOrigins.includes(origin)) return callback(null, true);
-    
-    // Allow any render.com subdomain (for preview deployments)
     if (origin.endsWith('.onrender.com')) return callback(null, true);
+    if (origin.includes('vercel.app') || origin.includes('netlify.app')) return callback(null, true);
     
-    // Allow Vercel/Netlify previews
-    if (origin.includes('vercel.app') || origin.includes('netlify.app')) {
-      return callback(null, true);
-    }
-    
-    // Log blocked origins for debugging
-    console.log(`[CORS] Blocked origin: ${origin}`);
     callback(new Error(`CORS: Origin "${origin}" not allowed.`));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 });
-
-// Middleware to skip CORS for static assets (same-origin requests)
-export const skipCorsForStatic = (req, res, next) => {
-  // If no origin header, it's a same-origin request - skip CORS
-  if (!req.headers.origin) {
-    return next();
-  }
-  // Otherwise, apply CORS
-  corsMiddleware(req, res, next);
-};
