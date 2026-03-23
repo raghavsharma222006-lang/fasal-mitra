@@ -18,11 +18,51 @@ const app  = express();
 const PORT = process.env.PORT || 4000;
 
 // ─── Security & Logging ───────────────────────────────────────
-app.use(helmet());
+// Configure Helmet to allow React app to work
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      connectSrc: ["'self'", "https://api.open-meteo.com"],
+    },
+  },
+}));
 app.use(morgan('dev'));
 
-// ─── CORS ─────────────────────────────────────────────────────
-app.use(corsMiddleware);
+// ─── Serve Frontend (Static Files) - BEFORE CORS to avoid blocking same-origin ────────────────────────────
+// In production, serve the built frontend from ../frontend/dist
+const staticPath = path.resolve(__dirname, '../frontend/dist');
+
+// Check if dist folder exists
+import { existsSync, statSync } from 'fs';
+let hasFrontend = existsSync(staticPath) && statSync(staticPath).isDirectory();
+
+console.log(`[DEBUG] __dirname: ${__dirname}`);
+console.log(`[DEBUG] staticPath: ${staticPath}`);
+console.log(`[DEBUG] hasFrontend: ${hasFrontend}`);
+
+if (hasFrontend) {
+  // Serve static files without CORS (same-origin)
+  app.use(express.static(staticPath, { 
+    dotfiles: 'ignore'
+  }));
+  
+  // Explicitly serve index.html for root path
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(staticPath, 'index.html'));
+  });
+  
+  console.log('[DEBUG] Static files served from:', staticPath);
+} else {
+  console.log('[DEBUG] Frontend dist not found at:', staticPath);
+}
+
+// ─── CORS (only for API routes) ─────────────────────────────────────
+app.use('/api', corsMiddleware);
 
 // ─── Body parsing ─────────────────────────────────────────────
 // 10 MB limit to handle base64-encoded images
@@ -43,23 +83,20 @@ app.use(globalLimiter);
 app.use('/api/ai',      aiRouter);
 app.use('/api/weather', weatherRouter);
 
-// ─── Serve Frontend (Static Files) ────────────────────────────
-// In production, serve the built frontend from ../frontend/dist
-const isProduction = process.env.NODE_ENV === 'production';
-const staticPath = isProduction 
-  ? path.join(__dirname, '../frontend/dist')  // Production: built files
-  : path.join(__dirname, '../frontend/dist'); // Development: same path
-
-// Check if dist folder exists
-import { existsSync } from 'fs';
-if (existsSync(staticPath)) {
-  app.use(express.static(staticPath));
-  
-  // Serve index.html for all non-API routes (SPA support)
-  app.get('*', (req, res) => {
-    if (!req.path.startsWith('/api')) {
-      res.sendFile(path.join(staticPath, 'index.html'));
+// ─── SPA Fallback - Serve index.html for all non-API routes ────────────────────────────
+if (hasFrontend) {
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
     }
+    const indexPath = path.join(staticPath, 'index.html');
+    console.log('[DEBUG] Serving index.html for:', req.path);
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        console.error('[DEBUG] Error sending index.html:', err);
+        next(err);
+      }
+    });
   });
 } else {
   // If no frontend build, show API info

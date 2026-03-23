@@ -31,7 +31,7 @@ const getAllowedOrigins = () => {
 
 export const corsMiddleware = cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, Postman, server-to-server)
+    // Allow requests with no origin (e.g. mobile apps, Postman, server-to-server, same-origin)
     if (!origin) return callback(null, true);
     
     const allowedOrigins = getAllowedOrigins();
@@ -47,9 +47,21 @@ export const corsMiddleware = cors({
       return callback(null, true);
     }
     
+    // Log blocked origins for debugging
+    console.log(`[CORS] Blocked origin: ${origin}`);
     callback(new Error(`CORS: Origin "${origin}" not allowed.`));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,
 });
+
+// Middleware to skip CORS for static assets (same-origin requests)
+export const skipCorsForStatic = (req, res, next) => {
+  // If no origin header, it's a same-origin request - skip CORS
+  if (!req.headers.origin) {
+    return next();
+  }
+  // Otherwise, apply CORS
+  corsMiddleware(req, res, next);
+};
