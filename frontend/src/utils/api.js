@@ -1,13 +1,14 @@
 import { getCoords } from './helpers.js';
 
-// Backend URL: use env var for production, /api for local dev (Vite proxy)
-const BACKEND = import.meta.env.VITE_BACKEND_URL || '/api';
+// Backend URL: empty string means same origin (unified deployment)
+// /api for local dev (Vite proxy), empty for production (same server)
+const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
 
 // Helper to build full API URL
 const apiUrl = (path) => {
-  // If BACKEND is a full URL (production), append path directly
-  // If BACKEND is /api (local dev), use as-is
-  return `${BACKEND}${path}`;
+  // In unified deployment, API is at /api/* on same server
+  // In local dev, Vite proxies /api to backend
+  return `${BACKEND}/api${path}`;
 };
 
 // ─── ASK CLAUDE (text + optional image) ──────────────────────
