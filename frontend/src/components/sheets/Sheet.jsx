@@ -5,7 +5,6 @@ export default function Sheet({ title, icon, onClose, children }) {
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="sheet">
-        {/* Sticky header */}
         <div className="sheet-header">
           <h3 style={{ fontSize: 17, fontWeight: 700, color: '#1a1a1a' }}>
             {icon} {title}
@@ -30,7 +29,6 @@ export default function Sheet({ title, icon, onClose, children }) {
           </button>
         </div>
 
-        {/* Scrollable body */}
         <div className="sheet-body">{children}</div>
       </div>
     </div>

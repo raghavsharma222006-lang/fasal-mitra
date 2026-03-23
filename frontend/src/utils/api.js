@@ -1,17 +1,8 @@
 import { getCoords } from './helpers.js';
 
-// Backend URL: empty string means same origin (unified deployment)
-// /api for local dev (Vite proxy), empty for production (same server)
 const BACKEND = import.meta.env.VITE_BACKEND_URL || '';
+const apiUrl = (path) => `${BACKEND}/api${path}`;
 
-// Helper to build full API URL
-const apiUrl = (path) => {
-  // In unified deployment, API is at /api/* on same server
-  // In local dev, Vite proxies /api to backend
-  return `${BACKEND}/api${path}`;
-};
-
-// ─── ASK CLAUDE (text + optional image) ──────────────────────
 export async function askClaude(prompt, imageBase64 = null) {
   try {
     const body = { prompt };
@@ -25,7 +16,6 @@ export async function askClaude(prompt, imageBase64 = null) {
 
     const data = await res.json();
     
-    // Handle specific error types
     if (!res.ok) {
       if (data.errorType === 'CREDIT_LOW' || res.status === 402) {
         return '💳 AI service temporarily unavailable.\n\nThe API credit balance is low. Please add credits to your Anthropic account:\n👉 https://console.anthropic.com/account/billing/overview';
@@ -40,7 +30,6 @@ export async function askClaude(prompt, imageBase64 = null) {
   }
 }
 
-// ─── FETCH LIVE WEATHER (Open-Meteo, free, no key) ───────────
 export async function fetchWeather(district) {
   try {
     const { lat, lon } = getCoords(district);
@@ -60,12 +49,11 @@ export async function fetchWeather(district) {
   }
 }
 
-// ─── CONVERT FILE → BASE64 ────────────────────────────────────
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
-      const base64 = e.target.result.split(',')[1]; // strip data:... prefix
+      const base64 = e.target.result.split(',')[1];
       resolve({ src: e.target.result, b64: base64 });
     };
     reader.onerror = () => reject(new Error('File read failed'));

@@ -1,17 +1,11 @@
 import { DISTRICT_COORDS } from './constants';
 
-/**
- * Returns lat/lon for a district (fallback = Punjab center)
- */
 export function getCoords(district) {
   return DISTRICT_COORDS[district] || { lat: 31.1048, lon: 77.1734 };
 }
 
-/**
- * Determine current farming season
- */
 export function getSeason() {
-  const month = new Date().getMonth() + 1; // 1-12
+  const month = new Date().getMonth() + 1;
   if (month >= 10 || month <= 3) {
     return {
       name:  "Rabi Season",
@@ -42,9 +36,6 @@ export function getSeason() {
   };
 }
 
-/**
- * Decode Open-Meteo WMO weather code → description + emoji
- */
 export function decodeWeatherCode(code) {
   if (code === 0)              return { desc: "Clear Sky",      emoji: "☀️" };
   if (code <= 3)               return { desc: "Partly Cloudy",  emoji: "⛅" };
@@ -55,9 +46,6 @@ export function decodeWeatherCode(code) {
   return                              { desc: "Thunderstorm",   emoji: "⛈️" };
 }
 
-/**
- * Convert a File to base64 string (without data-URL prefix)
- */
 export function fileToBase64(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

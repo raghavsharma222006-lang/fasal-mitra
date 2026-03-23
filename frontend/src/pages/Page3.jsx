@@ -50,14 +50,12 @@ export default function Page3({ location, onBack }) {
 
   const season = getSeason();
 
-  // ── Fetch weather on mount ─────────────────────────────────
   useEffect(() => {
     fetchWeather(location.district)
       .then((w) => { setWeather(w); setWLoading(false); })
       .catch(() => setWLoading(false));
   }, [location.district]);
 
-  // ── AI Search ──────────────────────────────────────────────
   const handleAsk = async () => {
     if (!query.trim()) return;
     setAiLoading(true);
@@ -73,7 +71,6 @@ export default function Page3({ location, onBack }) {
 
   const wi = weather ? decodeWeatherCode(weather.weather_code) : null;
 
-  // ── CROP IDENTIFIER PROMPT ─────────────────────────────────
   const cropCamPrompt =
     `You are a botanist and Punjab farming expert. Analyze this crop/plant image and provide:\n` +
     `1🌾 Crop/plant name\n` +
@@ -83,7 +80,6 @@ export default function Page3({ location, onBack }) {
     `5⏰ Expected growth timeline\n` +
     `Use emojis and be practical for Punjab farmers.`;
 
-  // ── DISEASE FINDER PROMPT ──────────────────────────────────
   const diseaseCamPrompt =
     `You are a plant pathologist for Punjab crops. Analyze this diseased crop image:\n` +
     `1🦠 Disease name\n` +
@@ -96,11 +92,9 @@ export default function Page3({ location, onBack }) {
   return (
     <div style={{ minHeight: '100vh', background: '#f4f7f3' }}>
 
-      {/* ── TOP BAR ─────────────────────────────────────────── */}
       <div className="top-bar">
         <div style={{ maxWidth: 640, margin: '0 auto' }}>
 
-          {/* Logo row */}
           <div
             style={{
               display: 'flex',
@@ -125,7 +119,6 @@ export default function Page3({ location, onBack }) {
             </div>
           </div>
 
-          {/* ── AI SEARCH BAR ──────────────────────────────── */}
           <div className="search-wrap">
             <p style={{ fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 8 }}>
               🤖 Ask AI Anything About Farming
@@ -157,10 +150,8 @@ export default function Page3({ location, onBack }) {
         </div>
       </div>
 
-      {/* ── MAIN CONTENT ────────────────────────────────────── */}
       <div style={{ maxWidth: 640, margin: '0 auto', padding: '14px 14px 60px' }}>
 
-        {/* ── WEATHER CARD ──────────────────────────────────── */}
         <div className="weather-card fade-up" style={{ marginBottom: 14 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -205,7 +196,6 @@ export default function Page3({ location, onBack }) {
           </div>
         </div>
 
-        {/* ── FEATURE GRID ──────────────────────────────────── */}
         <p style={{ fontSize: 15, fontWeight: 700, color: '#1a1a1a', marginBottom: 10 }}>
           🛠️ Smart Farming Tools
         </p>
@@ -238,7 +228,6 @@ export default function Page3({ location, onBack }) {
           ))}
         </div>
 
-        {/* ── SEASON ADVISORY ───────────────────────────────── */}
         <div
           className="fade-up"
           style={{
@@ -261,7 +250,6 @@ export default function Page3({ location, onBack }) {
           </p>
         </div>
 
-        {/* ── ABOUT SECTION ─────────────────────────────────── */}
         <div
           className="fm-card fade-up"
           style={{ marginTop: 14, padding: '16px 18px', animationDelay: '0.6s' }}
@@ -281,8 +269,7 @@ export default function Page3({ location, onBack }) {
         </div>
       </div>
 
-      {/* ── FEATURE MODALS ──────────────────────────────────── */}
-      {modal === 'crop'    && <CropPredSheet location={location} season={season} onClose={() => setModal(null)} />}
+      {modal === 'crop' && <CropPredSheet location={location} season={season} onClose={() => setModal(null)} />}
       {modal === 'manure'  && <ManureSheet   location={location} onClose={() => setModal(null)} />}
       {modal === 'cam'     && (
         <CameraSheet

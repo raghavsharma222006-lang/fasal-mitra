@@ -20,7 +20,6 @@ export default function Page1({ onNext }) {
       alignItems: 'center', justifyContent: 'center',
       padding: 20, overflow: 'hidden', position: 'relative',
     }}>
-      {/* Orbiting rings */}
       {[120, 200, 290, 380].map((size, i) => (
         <div key={i} style={{
           position: 'absolute', width: size, height: size,
@@ -32,7 +31,6 @@ export default function Page1({ onNext }) {
         }} />
       ))}
 
-      {/* Floating emojis */}
       {floatingEmojis.map(({ e, left, top }, i) => (
         <div key={i} style={{
           position: 'absolute', left, top,
@@ -43,7 +41,6 @@ export default function Page1({ onNext }) {
         }}>{e}</div>
       ))}
 
-      {/* Main content */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -94,7 +91,6 @@ export default function Page1({ onNext }) {
         </div>
       </motion.div>
 
-      {/* Ground wave */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70 }}>
         <svg viewBox="0 0 800 70" style={{ width: '100%', height: 70 }} preserveAspectRatio="none">
           <path d="M0,40 Q100,20 200,40 Q300,60 400,40 Q500,20 600,40 Q700,60 800,40 L800,70 L0,70Z"
