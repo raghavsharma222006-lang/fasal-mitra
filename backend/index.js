@@ -44,7 +44,6 @@ if (hasFrontend) {
   });
 }
 
-app.use('/api', corsMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -57,8 +56,8 @@ const globalLimiter = rateLimit({
 });
 app.use(globalLimiter);
 
-app.use('/api/ai', aiRouter);
-app.use('/api/weather', weatherRouter);
+app.use('/api/ai', corsMiddleware, aiRouter);
+app.use('/api/weather', corsMiddleware, weatherRouter);
 
 if (hasFrontend) {
   app.get('*', (req, res, next) => {
