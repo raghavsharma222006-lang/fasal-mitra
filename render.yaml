@@ -3,7 +3,7 @@ services:
   - type: web
     name: fasal-mitra
     runtime: node
-    buildCommand: cd frontend && npm install && npx vite build && cd ../backend && npm install
+    buildCommand: cd frontend && npm install && ./node_modules/.bin/vite build && cd ../backend && npm install
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
